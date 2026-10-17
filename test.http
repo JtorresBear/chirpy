@@ -1,0 +1,9 @@
+GET http://localhost:8080/admin/metrics
+
+###
+
+POST http://localhost:8080/admin/reset
+
+###
+
+GET http://localhost:8080/admin/metrics
