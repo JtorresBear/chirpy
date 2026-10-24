@@ -6,15 +6,24 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/JtorresBear/chirpy/internal/auth"
 	"github.com/JtorresBear/chirpy/internal/database"
-	"github.com/google/uuid"
 )
 
 func (cfg *apiConfig) chirpHandler(respW http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
+	token, err := auth.GetBearerToken(req.Header)
+	if err != nil {
+		respondWithError(respW, 401, "Invalid Token")
+		return
+	}
+	authUser, err := auth.ValidateJWT(token, cfg.secret)
+	if err != nil {
+		respondWithError(respW, 401, "Invalid Token")
+		return
+	}
 	type reqBody struct {
-		Body   string    `json:"body"`
-		UserID uuid.UUID `json:"user_id"`
+		Body string `json:"body"`
 	}
 	bannedWords := []string{"kerfuffle", "sharbert", "fornax"}
 
@@ -47,7 +56,7 @@ func (cfg *apiConfig) chirpHandler(respW http.ResponseWriter, req *http.Request)
 	chirpReq.Body = strings.Join(chirpSplit, " ")
 	params := database.CreateChirpParams{}
 	params.Body = chirpReq.Body
-	params.UserID = chirpReq.UserID
+	params.UserID = authUser
 	sqlChirp, err := cfg.dbQueries.CreateChirp(req.Context(), params)
 	if err != nil {
 		respondWithError(respW, 500, "Couldn't create chirp")

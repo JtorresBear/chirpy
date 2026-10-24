@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/JtorresBear/chirpy/internal/auth"
 )
@@ -12,8 +13,9 @@ func (cfg *apiConfig) loginHandler(respW http.ResponseWriter, req *http.Request)
 	defer req.Body.Close()
 
 	type authcred struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		Email      string `json:"email"`
+		Password   string `json:"password"`
+		Expiration int    `json:"expires_in_seconds"`
 	}
 
 	data, err := io.ReadAll(req.Body)
@@ -25,10 +27,12 @@ func (cfg *apiConfig) loginHandler(respW http.ResponseWriter, req *http.Request)
 
 	err = json.Unmarshal(data, &cred)
 	if err != nil {
-		respondWithError(respW, 500, err.Error())
+		respondWithError(respW, 400, err.Error())
 		return
 	}
-
+	if cred.Expiration < 1 || cred.Expiration > 3600 {
+		cred.Expiration = 3600
+	}
 	actualCred, err := cfg.dbQueries.GetUserPassword(req.Context(), cred.Email)
 	if err != nil {
 		respondWithError(respW, 401, "incorrect email or password")
@@ -43,11 +47,18 @@ func (cfg *apiConfig) loginHandler(respW http.ResponseWriter, req *http.Request)
 		respondWithError(respW, 401, "incorrect email or password")
 		return
 	}
+	token, err := auth.MakeJWT(actualCred.ID, cfg.secret, time.Duration(cred.Expiration)*time.Second)
+
+	if err != nil {
+		respondWithError(respW, 500, err.Error())
+		return
+	}
 	user := User{
 		ID:        actualCred.ID,
 		CreatedAt: actualCred.CreatedAt,
-		UpdatedAt: actualCred.CreatedAt,
+		UpdatedAt: actualCred.UpdatedAt,
 		Email:     actualCred.Email,
+		Token:     token,
 	}
 	respondWithJson(respW, 200, user)
 }
