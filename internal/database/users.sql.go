@@ -52,7 +52,7 @@ func (q *Queries) DeleteAllUsers(ctx context.Context) error {
 }
 
 const getUserPassword = `-- name: GetUserPassword :one
-select id, created_at, updated_at, email, hashed_password FROM users where email = $1
+SELECT id, created_at, updated_at, email, hashed_password FROM users where email = $1
 `
 
 func (q *Queries) GetUserPassword(ctx context.Context, email string) (User, error) {
@@ -64,6 +64,36 @@ func (q *Queries) GetUserPassword(ctx context.Context, email string) (User, erro
 		&i.UpdatedAt,
 		&i.Email,
 		&i.HashedPassword,
+	)
+	return i, err
+}
+
+const updatePassword = `-- name: UpdatePassword :one
+UPDATE users SET hashed_password = $1, updated_at = NOW(), email = $2 WHERE id = $3
+RETURNING id, created_at, updated_at, email
+`
+
+type UpdatePasswordParams struct {
+	HashedPassword string
+	Email          string
+	ID             uuid.UUID
+}
+
+type UpdatePasswordRow struct {
+	ID        uuid.UUID
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	Email     string
+}
+
+func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) (UpdatePasswordRow, error) {
+	row := q.db.QueryRowContext(ctx, updatePassword, arg.HashedPassword, arg.Email, arg.ID)
+	var i UpdatePasswordRow
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Email,
 	)
 	return i, err
 }

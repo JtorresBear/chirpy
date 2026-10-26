@@ -10,7 +10,7 @@ import (
 	"github.com/JtorresBear/chirpy/internal/database"
 )
 
-func (cfg *apiConfig) chirpHandler(respW http.ResponseWriter, req *http.Request) {
+func (cfg *apiConfig) postChirpHandler(respW http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 	token, err := auth.GetBearerToken(req.Header)
 	if err != nil {

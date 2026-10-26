@@ -7,4 +7,8 @@ RETURNING  id, created_at, updated_at, email ;
 DELETE FROM users;
 
 -- name: GetUserPassword :one
-select * FROM users where email = $1;
+SELECT * FROM users where email = $1;
+
+-- name: UpdatePassword :one
+UPDATE users SET hashed_password = $1, updated_at = NOW(), email = $2 WHERE id = $3
+RETURNING id, created_at, updated_at, email ;
