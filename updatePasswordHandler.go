@@ -52,15 +52,17 @@ func (cfg *apiConfig) updatePasswordHandler(respW http.ResponseWriter, req *http
 	userCred, err := cfg.dbQueries.UpdatePassword(req.Context(), params)
 
 	returnUser := struct {
-		ID        uuid.UUID `json:"id"`
-		EMAIL     string    `json:"email"`
-		UPDATEDAT time.Time `json:"updated_at"`
-		CREATEDAT time.Time `json:"created_at"`
+		ID          uuid.UUID `json:"id"`
+		EMAIL       string    `json:"email"`
+		UPDATEDAT   time.Time `json:"updated_at"`
+		CREATEDAT   time.Time `json:"created_at"`
+		ISCHIRPYRED bool      `JSON:"is_chirpy_red"`
 	}{
-		ID:        userCred.ID,
-		EMAIL:     userCred.Email,
-		UPDATEDAT: userCred.UpdatedAt,
-		CREATEDAT: userCred.CreatedAt,
+		ID:          userCred.ID,
+		EMAIL:       userCred.Email,
+		UPDATEDAT:   userCred.UpdatedAt,
+		CREATEDAT:   userCred.CreatedAt,
+		ISCHIRPYRED: userCred.IsChirpyRed,
 	}
 
 	respondWithJson(respW, 200, returnUser)

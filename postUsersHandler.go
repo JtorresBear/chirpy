@@ -47,6 +47,7 @@ func (cfg *apiConfig) postUsersHandler(respW http.ResponseWriter, req *http.Requ
 	user.CreatedAt = dbUser.CreatedAt
 	user.UpdatedAt = dbUser.UpdatedAt
 	user.Email = dbUser.Email
+	user.Is_chirpy_red = dbUser.IsChirpyRed
 
 	respondWithJson(respW, 201, user)
 }

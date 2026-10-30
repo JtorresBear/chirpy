@@ -2,17 +2,35 @@ package main
 
 import (
 	"net/http"
+	"sort"
 
+	"github.com/JtorresBear/chirpy/internal/database"
 	"github.com/google/uuid"
 )
 
 func (cfg *apiConfig) GetAllChirps(respW http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
-
-	sqlChirps, err := cfg.dbQueries.GetAllChirps(req.Context())
-	if err != nil {
-		respondWithError(respW, 500, "Couldn't load chirps from database")
-		return
+	authID := req.URL.Query().Get("author_id")
+	parsedAuthID := uuid.UUID{}
+	sqlChirps := []database.Chirp{}
+	var err error
+	if authID == "" {
+		sqlChirps, err = cfg.dbQueries.GetAllChirps(req.Context())
+		if err != nil {
+			respondWithError(respW, 500, "Couldn't load chirps from database")
+			return
+		}
+	} else {
+		var err2 error
+		parsedAuthID, err2 = uuid.Parse(authID)
+		if err2 != nil {
+			respondWithError(respW, 500, err2.Error())
+			return
+		}
+		sqlChirps, err2 = cfg.dbQueries.GetAllChirpsFromUser(req.Context(), parsedAuthID)
+		if err2 != nil {
+			respondWithError(respW, 500, err2.Error())
+		}
 	}
 
 	resChirps := make([]Chirp, 0)
@@ -26,6 +44,14 @@ func (cfg *apiConfig) GetAllChirps(respW http.ResponseWriter, req *http.Request)
 		resChirp.UserID = chirp.UserID
 		resChirps = append(resChirps, resChirp)
 	}
+
+	sortOrder := req.URL.Query().Get("sort")
+	if sortOrder == "desc" {
+		sort.Slice(resChirps, func(i int, j int) bool {
+			return resChirps[i].CreatedAt.After(resChirps[j].CreatedAt)
+		})
+	}
+
 	respondWithJson(respW, 200, resChirps)
 }
 

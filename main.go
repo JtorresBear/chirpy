@@ -17,19 +17,19 @@ type apiConfig struct {
 	dbQueries      *database.Queries
 	platform       string
 	secret         string
+	polkaKey       string
 }
 
 func main() {
 	godotenv.Load()
 	dbURL := os.Getenv("DB_URL")
-	platform := os.Getenv("PLATFORM")
-	secret := os.Getenv("SECRET")
 	db, err := sql.Open("postgres", dbURL)
 	dbQueries := database.New(db)
 	apiCfg := &apiConfig{}
-	apiCfg.platform = platform
+	apiCfg.platform = os.Getenv("PLATFORM")
 	apiCfg.dbQueries = dbQueries
-	apiCfg.secret = secret
+	apiCfg.secret = os.Getenv("SECRET")
+	apiCfg.polkaKey = os.Getenv("POLKA_KEY")
 	mux := http.NewServeMux()
 	fServer := http.FileServer(http.Dir("."))
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", fServer)))
@@ -46,6 +46,7 @@ func main() {
 	mux.HandleFunc("POST /api/revoke", apiCfg.revokeHandler)
 	mux.HandleFunc("PUT /api/users", apiCfg.updatePasswordHandler)
 	mux.HandleFunc("DELETE /api/chirps/{chirpID}", apiCfg.deleteChirpHandler)
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.upgradeToRedHandler)
 	server := http.Server{
 		Handler: mux,
 		Addr:    ":8080",

@@ -14,7 +14,7 @@ func GetBearerToken(headers http.Header) (string, error) {
 	if !strings.HasPrefix(tokenString, "Bearer ") {
 		return "", errors.New("Not prefixed by Bearer")
 	}
-	tokenString = strings.TrimPrefix(tokenString, "Bearer")
+	tokenString = strings.TrimPrefix(tokenString, "Bearer ")
 	tokenString = strings.TrimSpace(tokenString)
 
 	if len(tokenString) == 0 {

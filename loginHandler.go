@@ -63,12 +63,13 @@ func (cfg *apiConfig) loginHandler(respW http.ResponseWriter, req *http.Request)
 	}
 
 	user := User{
-		ID:           actualCred.ID,
-		CreatedAt:    actualCred.CreatedAt,
-		UpdatedAt:    actualCred.UpdatedAt,
-		Email:        actualCred.Email,
-		Token:        token,
-		RefreshToken: refreshToken,
+		ID:            actualCred.ID,
+		CreatedAt:     actualCred.CreatedAt,
+		UpdatedAt:     actualCred.UpdatedAt,
+		Email:         actualCred.Email,
+		Token:         token,
+		RefreshToken:  refreshToken,
+		Is_chirpy_red: actualCred.IsChirpyRed,
 	}
 	respondWithJson(respW, 200, user)
 }

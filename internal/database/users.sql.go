@@ -15,7 +15,7 @@ import (
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (id, created_at, updated_at, email, hashed_password)
 VALUES (gen_random_uuid(),NOW(),NOW(),$1,$2)
-RETURNING  id, created_at, updated_at, email
+RETURNING  id, created_at, updated_at, email, is_chirpy_red
 `
 
 type CreateUserParams struct {
@@ -24,10 +24,11 @@ type CreateUserParams struct {
 }
 
 type CreateUserRow struct {
-	ID        uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Email     string
+	ID          uuid.UUID
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	Email       string
+	IsChirpyRed bool
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
@@ -38,6 +39,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Email,
+		&i.IsChirpyRed,
 	)
 	return i, err
 }
@@ -51,8 +53,19 @@ func (q *Queries) DeleteAllUsers(ctx context.Context) error {
 	return err
 }
 
+const getUserById = `-- name: GetUserById :one
+SELECT id from users WHERE id = $1
+`
+
+func (q *Queries) GetUserById(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, getUserById, id)
+	var id_2 uuid.UUID
+	err := row.Scan(&id_2)
+	return id_2, err
+}
+
 const getUserPassword = `-- name: GetUserPassword :one
-SELECT id, created_at, updated_at, email, hashed_password FROM users where email = $1
+SELECT id, created_at, updated_at, email, hashed_password, is_chirpy_red FROM users where email = $1
 `
 
 func (q *Queries) GetUserPassword(ctx context.Context, email string) (User, error) {
@@ -64,13 +77,14 @@ func (q *Queries) GetUserPassword(ctx context.Context, email string) (User, erro
 		&i.UpdatedAt,
 		&i.Email,
 		&i.HashedPassword,
+		&i.IsChirpyRed,
 	)
 	return i, err
 }
 
 const updatePassword = `-- name: UpdatePassword :one
 UPDATE users SET hashed_password = $1, updated_at = NOW(), email = $2 WHERE id = $3
-RETURNING id, created_at, updated_at, email
+RETURNING id, created_at, updated_at, email, is_chirpy_red
 `
 
 type UpdatePasswordParams struct {
@@ -80,10 +94,11 @@ type UpdatePasswordParams struct {
 }
 
 type UpdatePasswordRow struct {
-	ID        uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Email     string
+	ID          uuid.UUID
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	Email       string
+	IsChirpyRed bool
 }
 
 func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) (UpdatePasswordRow, error) {
@@ -94,6 +109,16 @@ func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) 
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.Email,
+		&i.IsChirpyRed,
 	)
 	return i, err
+}
+
+const upgradToRed = `-- name: UpgradToRed :exec
+UPDATE users SET is_chirpy_red = TRUE, updated_at = NOW() WHERE id = $1
+`
+
+func (q *Queries) UpgradToRed(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, upgradToRed, id)
+	return err
 }
